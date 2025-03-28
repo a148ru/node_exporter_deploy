@@ -1,0 +1,10 @@
+---
+
+exporters:
+  hosts:
+    polaris136:
+      ansible_host: 10.10.10.1
+      ansible_ssh_user: user
+#    prometheus:
+#      ansible_host: 10.10.10.2
+#      ansible_ssh_user: ubuntu

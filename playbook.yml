@@ -1,0 +1,58 @@
+---
+
+- name: Install node_exporter on linux
+  hosts: exporters
+  become: true
+  handlers:
+    - name: Restart service
+      become: true
+      ansible.builtin.service:
+        name: "{{ service_name }}"
+        enabled: true
+        state: restarted
+  tasks:
+    - name: Download pkg
+      become: true
+      block:
+        - name: Install requirements
+          ansible.builtin.apt:
+            name:
+              - wget
+              - tar
+        - name: Unpack node_exporter
+          ansible.builtin.unarchive:
+            src: "{{ source_pkg }}/releases/download/v{{ node_exporter_version }}/{{ pkg_name }}-{{ node_exporter_version }}.linux-amd64.tar.gz"
+            remote_src: true
+            dest: /tmp
+        - name: Copy node_exporter
+          ansible.builtin.copy:
+            src: /tmp/{{ pkg_name }}-{{ node_exporter_version }}.linux-amd64/{{ exec }}
+            dest: /usr/local/bin/{{ exec }}
+            remote_src: true
+            owner: root
+            group: root
+            mode: '0755'
+          notify: Restart service
+        - name: Add the group {{ service_name }}
+          ansible.builtin.group:
+            name: "{{ service_name }}"
+            state: present
+        - name: Add the user node_exporter
+          ansible.builtin.user:
+            name: "{{ service_name }}"
+            shell: /sbin/nologin
+            group: "{{ service_name }}"
+            create_home: false
+            system: true
+          notify: Restart service
+        - name: "Add service_file in systemd"
+          ansible.builtin.copy:
+            src: "{{ service_file }}"
+            remote_src: false
+            dest: /etc/systemd/system/{{ service_file }}
+            owner: root
+            group: root
+            mode: '0655'
+          notify: Restart service
+        - name: Flush handlers
+          ansible.builtin.meta: flush_handlers
